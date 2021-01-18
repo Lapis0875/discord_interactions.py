@@ -3,8 +3,8 @@ from typing import Callable, Optional, Any, NoReturn, Dict, Tuple, Union, List
 
 from discord.ext.commands import Bot
 
-from discord_slash.models.slash import ApplicationCommand, ApplicationCommandOption
-from discord_slash.utils.type_hints import CoroutineFunction
+from discord_interactions.models.slash import ApplicationCommand, ApplicationCommandOption
+from discord_interactions.utils.type_hints import CoroutineFunction
 
 
 # type hints

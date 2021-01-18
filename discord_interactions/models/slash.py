@@ -10,8 +10,8 @@ import aiohttp
 from discord.ext.commands import Bot
 
 from .discordAPI import DiscordAPI
-from discord_slash.utils.type_hints import JSON, CoroutineFunction
-from discord_slash.utils.abstracts import JsonObject
+from discord_interactions.utils.type_hints import JSON, CoroutineFunction
+from discord_interactions.utils.abstracts import JsonObject
 
 
 class InteractionType(Enum):
