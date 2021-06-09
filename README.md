@@ -4,6 +4,11 @@ Supported APIs:
 1. application commands (slash commands)
 2. components - Buttons
 
+## ⚠ Warning
+This repository is currently on development. I can't ensure this module works without any problems.
+Since I'm preparing college entry exam, I can't keep my eyes on this project. I will read issues, but I can't say they will be resloved soon.
+Every PRs are welcomed, as you keep the code's consistency (code style, docstring formats, etc.) :D
+
 ## How to install
 1. Install library from pypi
 ```shell
@@ -68,7 +73,7 @@ async def select_cmd(ctx: Context):
 
 ## How to use - XML Message Components (Experimental)
 
-> `preset_buttons.xml`
+> `preset_components.xml`
 ```xml
 <Components>
   <!-- button component structure-->
@@ -90,6 +95,18 @@ from discord_interactions.ui import SelectOption, Select, Button, Presets
 from discord.ext.commands import Bot, Context
 
 bot = Bot(command_prefix='!')
+
+"""
+discord_interactions.ui.Presets is a singleton class, which parse and stores xml-structured message components.
+You can get those preset components through methods like:
+  ActionRow : Presets().get_action_row(name)
+  Button : Presets().get_button(name)
+  Select : Presets().get_select(name)
+  SelectOption : Presets().get_select_option(name)
+Parameter `name` is defined in xml component tags as a attribute 'name`.
+You can get these preset components using `name` attribute value.
+"""
+Presets().load_xml('preset_components.xml')
 
 @bot.command(name='repository')
 async def repo_btn_cmd(ctx: Context):
