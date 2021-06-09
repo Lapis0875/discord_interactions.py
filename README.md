@@ -9,6 +9,9 @@ This repository is currently on development. I can't ensure this module works wi
 Since I'm preparing college entry exam, I can't keep my eyes on this project. I will read issues, but I can't say they will be resloved soon.
 Every PRs are welcomed, as you keep the code's consistency (code style, docstring formats, etc.) :D
 
+- You can use application command feature (a.k.a slash commands) in [this module](https://github.com/discord-py-slash-commands/discord-py-slash-command), too.
+- You can use message components feature in [this module](https://github.com/kiki7000/discord.py-components), too.
+
 ## How to install
 1. Install library from pypi
 ```shell
