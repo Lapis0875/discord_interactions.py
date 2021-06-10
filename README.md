@@ -54,7 +54,7 @@ async def btn_cmd(ctx: Context):
 
 > Select Menu
 ```python
-from discord_interactions.ui import SelectOption, Select
+from discord_interactions.ui import SelectOption, SelectMenu
 from discord.ext.commands import Bot, Context
 
 bot = Bot(command_prefix='!')
@@ -64,7 +64,7 @@ bot = Bot(command_prefix='!')
 )
 async def select_cmd(ctx: Context):
     await ctx.send(components=[
-      Select(
+      SelectMenu(
         options=[
           SelectOption(label='pizza', value=1),
           SelectOption(label='chicken', value=2)
@@ -79,22 +79,23 @@ async def select_cmd(ctx: Context):
 > `preset_components.xml`
 ```xml
 <Components>
-  <!-- button component structure-->
-  <Button name='repository_url' style='Link' url='https://github.com/Lapis0875/discord_interactions.py' label='Repository Link' emoji='🔗'/>
-  <!-- select component structure -->
-  <Select name='food_poll' placeholder='Choose your favorite food'>
-    <SelectOption label='pizza' value='1'/>
-    <SelectOption label='chicken' value='2'/>
-  </Select>
-  <!-- reference component object defined before. Will be replaced into matching component(based on reference name) on runtime. -->
-  <ActionRow name='food_poll_view'>
+    <!-- button component structure-->
+    <Button name='repository_url' style='Link' url='https://github.com/Lapis0875/discord_interactions.py' label='Repository Link' emoji='🔗'/>
+    <!-- select component structure -->
+    <SelectMenu name="food_poll" custom_id="food_poll" placeholder="Choose your favorite food!">
+        <SelectOption label="Pizza" value="food.instant.pizza" description="Pizza is one of most popular instant food over the world." emoji = "🍕"/>
+        <SelectOption label="Chicken" value="food.instant.chicken" description="CHICKEN IS THE GOD!!!" emoji="🍗"/>
+        <SelectOption label="Ramen" value="food.ramen" description="Ramen is a sort of noodle dish." emoji="🍜"/>
+    </SelectMenu>
+    <!-- reference component object defined before. Will be replaced into matching component(based on reference name) on runtime. -->
+    <ActionRow name='food_poll_view'>
     <Select ref='food_poll'/>
-  </ActionRow>
+    </ActionRow>
 </Components>
 ```
 > `code.py`
 ```python
-from discord_interactions.ui import SelectOption, Select, Button, Presets
+from discord_interactions.ui import SelectOption, SelectMenu, Button, Presets
 from discord.ext.commands import Bot, Context
 
 bot = Bot(command_prefix='!')
@@ -117,7 +118,7 @@ async def repo_btn_cmd(ctx: Context):
 
 @bot.command(name='food_poll')
 async def fool_poll_cmd(ctx: Context):
-    await ctx.send(components=Presets.get_action_row('food_poll_view'))
+    await ctx.send(components=[Presets.get_action_row('food_poll_view')])
 ```
 
 ## Contribute
