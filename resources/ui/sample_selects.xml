@@ -1,0 +1,22 @@
+<Components>
+    <SelectMenu name="select_sample" custom_id="preset_select_sample" placeholder="Destiny2 abilities">
+        <SelectOption label="solar" value="option 1" description="solar abilities">
+            <Emoji name="solar" animated="false" id="796588468100136990"/>
+        </SelectOption>
+        <SelectOption label="ark" value="option 2" description="ark abilities">
+            <Emoji name="ark" animated="false" id="796588467735756831"/>
+        </SelectOption>
+        <SelectOption label="void" value="option 3" description="void abilities">
+            <Emoji name="void" animated="false" id="796588468238549022"/>
+        <SelectOption label="stasis" value="option 4" description="stasis abilities">
+            <Emoji name="stasis" animated="false" id="796588468398063646"/>
+        </SelectOption>
+        </SelectOption>
+    </SelectMenu>
+    <SelectMenu name="food_poll" custom_id="food_poll" placeholder="Choose your favorite food!">
+        <SelectOption label="Pizza" value="food.instant.pizza" description="Pizza is one of most popular instant food over the world." emoji = "🍕"/>
+        <SelectOption label="Chicken" value="food.instant.chicken" description="CHICKEN IS THE GOD!!!" emoji="🍗"/>
+        <SelectOption label="Ramen" value="food.ramen" description="Ramen is a sort of noodle dish." emoji="🍜"/>
+    </SelectMenu>
+    <SelectOption name="select_option_sample" label="preset select option" value="preset_select_option" description="I'm preset!"/>
+</Components>

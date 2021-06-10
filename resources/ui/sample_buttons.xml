@@ -5,6 +5,6 @@
     <Button name="danger_button" style="Danger" label="you" emoji="🎶" disabled="false" custom_id="danger_button_preset"/>
     <Button name="link_button" style="Link" label="?" emoji="🎵" disabled="false" url="https://github.com/Lapis0875"/>
     <Button name="partial_emoji_button" style="Success" label="Emojis!" disabled="false" custom_id="emoji_button_preset">
-            <Emoji name="" animated="false" id="796588468398063646"/>
+            <Emoji name="staisis" animated="false" id="796588468398063646"/>
     </Button>
 </Components>

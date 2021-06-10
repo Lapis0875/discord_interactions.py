@@ -1,7 +1,13 @@
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, Final
 
-from discord_interactions.ui import Component
 from discord_interactions.utils.abstracts import SingletonMeta
+from .components import Component, ActionRow, Button, SelectOption, SelectMenu
+
+# component class names
+ACTION_ROW: Final[str] = ActionRow.__name__
+BUTTON: Final[str] = Button.__name__
+SELECT_OPTION: Final[str] = SelectOption.__name__
+SELECT: Final[str] = SelectMenu.__name__
 
 
 class ComponentCache(metaclass=SingletonMeta):
@@ -14,19 +20,26 @@ class ComponentCache(metaclass=SingletonMeta):
     def __init__(self):
         self.cache: Dict[str, Dict[str, Component]] = {}
 
-    def get_component_by_id(self, custom_id: str) -> Optional[Component]:
-        # MOCK LOGIC
-        for components in self.cache:
-            for component in components:
-                if 'custom_id' in component.__dict__ and component.custom_id == custom_id:
-                    return component
-        filter(
-            lambda c: c.custom_id == custom_id,
-            filter(lambda c: c)
-        )
+    def register_button(self, custom_id: str, button: Component) -> None:
+        self.cache[BUTTON][custom_id] = button
 
     def get_buttons(self) -> Tuple[Component, ...]:
-        return tuple(self.cache['button'].values())
+        return tuple(self.cache[BUTTON].values())
 
-    def register_button(self, custom_id: str, button: Component) -> None:
-        self.cache[custom_id] = button
+    def get_button_by_id(self, custom_id: str) -> Optional[Component]:
+        return next(filter(
+            lambda c: c.custom_id == custom_id,
+            filter(lambda c: 'custom_id' in c.__dict__ and c.custom_id == custom_id, self.cache[BUTTON])
+        ), None)
+
+    def register_select_menu(self, custom_id: str, select: SelectMenu) -> None:
+        self.cache[SELECT][custom_id] = select
+
+    def get_select_menus(self) -> Tuple[Component, ...]:
+        return tuple(self.cache[SELECT].values())
+
+    def get_select_menu_by_id(self, custom_id: str) -> Optional[Component]:
+        return next(filter(
+            lambda c: c.custom_id == custom_id,
+            filter(lambda c: 'custom_id' in c.__dict__ and c.custom_id == custom_id, self.cache[SELECT])
+        ), None)

@@ -6,9 +6,9 @@ from typing import Optional, List, Dict, Any, Type
 from discord import User, Role
 from discord.abc import GuildChannel
 
-from discord_interactions.application_commands.models import ApplicationCommandOptionType, ApplicationCommandOptionChoice, ApplicationCommandOption
 from discord_interactions.utils.abstracts import JsonObject
 from discord_interactions.utils.type_hints import JSON
+from .slash import ApplicationCommandOptionType, ApplicationCommandOptionChoice, ApplicationCommandOption
 
 
 __all__ = (

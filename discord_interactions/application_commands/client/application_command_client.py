@@ -20,7 +20,7 @@ __all__ = (
 )
 
 
-class BaseApplication:
+class BaseSlashApplication:
     """Base Class of Slash command clients"""
     def __init__(self, application_id: int = 0) -> None:
         # Slash Command storage
@@ -43,6 +43,12 @@ class BaseApplication:
 
     def getCommand(self, command_id: int) -> Optional[ApplicationCommand]:
         return self.__application_commands__.get(command_id)
+
+    def get_command_by_name(self, name: str) -> Optional[ApplicationCommand]:
+        return next(filter(
+            lambda c: c.name == name,
+            self.__application_commands__.values()
+        ))
 
     async def process_slash(self, data: JSON):
         """
@@ -171,7 +177,7 @@ class BaseApplication:
         return wrapper
 
 
-class SlashClient(Client, BaseApplication):
+class SlashClient(Client, BaseSlashApplication):
     """Client class supporting Slash Command features"""
 
     def __init__(self, **options):
@@ -202,7 +208,7 @@ class SlashClient(Client, BaseApplication):
         return await self.process_slash(msg['d'])
 
 
-class AutoShardedSlashClient(AutoShardedClient, BaseApplication):
+class AutoShardedSlashClient(AutoShardedClient, BaseSlashApplication):
     """AutoSharded version of SlashClient."""
 
     def __init__(self, *args, loop=None, **kwargs):

@@ -1,0 +1,2 @@
+class InteractionClient():
+    pass

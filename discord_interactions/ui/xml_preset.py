@@ -4,12 +4,10 @@ from xml.etree.ElementTree import parse, ElementTree, Element
 
 from discord import PartialEmoji
 
-from discord_interactions.utils.abstracts import SingletonMeta
 from discord_interactions.utils.type_hints import JSON, EMOJI
-from .components import Component, ActionRow
-from .button import Button, ButtonStyle, ButtonKeys
+from discord_interactions.utils.abstracts import SingletonMeta
 from .errors import DiscordUIError
-from .select import SelectOption, Select, SelectOptionKeys, SelectKeys
+from .components import Component, ActionRow, Button, ButtonStyle, ButtonKeys, SelectOption, SelectMenu, SelectOptionKeys, SelectKeys
 
 # Tag Names
 # - structure tag
@@ -22,12 +20,12 @@ REFERENCE: Final[str] = 'ref'
 ACTION_ROW: Final[str] = ActionRow.__name__
 BUTTON: Final[str] = Button.__name__
 SELECT_OPTION: Final[str] = SelectOption.__name__
-SELECT: Final[str] = Select.__name__
+SELECT_MENU: Final[str] = SelectMenu.__name__
 
 
 __all__ = (
     'Presets',
-    ''
+    'XMLComponentParser'
 )
 
 
@@ -75,7 +73,6 @@ class InvalidComponentStructure(ComponentParseError):
         )
 
 
-
 def _parse_boolean(value: str) -> bool:
     if value in ('false', 'False', 'FALSE'):
         return False
@@ -109,7 +106,7 @@ class XMLComponentParser:
         self.parsed: Dict[str, Dict[str, Component]] = storage or {
             ACTION_ROW: {},
             BUTTON: {},
-            SELECT: {},
+            SELECT_MENU: {},
             SELECT_OPTION: {}
         }
         self.postponed_queue: List[JSON] = []
@@ -119,7 +116,7 @@ class XMLComponentParser:
             button_tag: Element,
             *,
             parent: Optional[ActionRow]
-    ) -> Optional[Tuple[Button, Optional[str]]]:
+    ) -> Tuple[Optional[Button], Optional[str]]:
         # reference tag checks.
         # Example : <Button ref="some_ref_name"/>
         ref = button_tag.get(REFERENCE)
@@ -132,7 +129,7 @@ class XMLComponentParser:
                     PostponedKeys.CLASS: Button
                 }
             )
-            return None
+            return None, ref
 
         style_raw: str = button_tag.attrib[ButtonKeys.STYLE]
         style_to_parse = int(style_raw) if style_raw.isdigit() else style_raw
@@ -155,13 +152,14 @@ class XMLComponentParser:
             self,
             option_tag: Element,
             *,
-            parent: Optional[Select] = None,
+            parent: Optional[SelectMenu] = None,
             container: Optional[list] = None
-    ) -> Optional[Tuple[SelectOption, Optional[str]]]:
+    ) -> Tuple[Optional[SelectOption], Optional[str]]:
         # reference tag checks.
         # Example : <SelectOption ref="some_ref_name"/>
         ref = option_tag.get(REFERENCE)
         if ref:
+            print(f'Adding reference for SelectOption with name {ref}')
             # Postpone to parse after primary parsing.
             self.postponed_queue.append(
                 {
@@ -171,7 +169,7 @@ class XMLComponentParser:
                     PostponedKeys.CLASS: SelectOption
                 }
             )
-            return None
+            return None, ref
 
         default_raw: str = option_tag.get(SelectOptionKeys.DEFAULT)
         default: bool = default_raw and _parse_boolean(default_raw)
@@ -195,12 +193,12 @@ class XMLComponentParser:
 
         return options
 
-    def _parse_select_from_tag(
+    def _parse_select_menu_from_tag(
             self,
             select_tag: Element,
             *,
             parent: Optional[ActionRow]
-    ) -> Optional[Tuple[Select, Optional[str]]]:
+    ) -> Tuple[Optional[SelectMenu], Optional[str]]:
         # reference tag checks.
         # Example : <Select ref="some_ref_name"/>
         ref = select_tag.get(REFERENCE)
@@ -210,14 +208,14 @@ class XMLComponentParser:
                 {
                     PostponedKeys.PARENT: parent,
                     PostponedKeys.REFERENCE_NAME: ref,
-                    PostponedKeys.CLASS: SelectOption
+                    PostponedKeys.CLASS: SelectMenu
                 }
             )
-            return None
+            return None, ref
 
         options: List[SelectOption] = self.parse_select_options(select_tag)
 
-        return Select(
+        return SelectMenu(
             # Required
             options=options,
             # Optional
@@ -230,7 +228,7 @@ class XMLComponentParser:
     def load_xml_action_rows(self, root: Element) -> Dict[str, ActionRow]:
         action_rows: Dict[str, ActionRow] = {}
 
-        for action_row in root.iter(ACTION_ROW):
+        for action_row in root.iterfind(ACTION_ROW):
             action_row_childs: List[Component] = []
 
             # TODO
@@ -248,38 +246,40 @@ class XMLComponentParser:
                     if button is not None:
                         action_row_obj.add_child(button)
 
-                return action_rows
+                continue
 
-            # Search selects next.
-            selects: List[Element] = action_row.findall(SELECT)
+            # Search select menus next.
+            selects: List[Element] = action_row.findall(SELECT_MENU)
             if len(selects) > 0:
-                # In this case, parse only select components.
+                # In this case, parse only select menu components.
                 for select in selects:
                     # TODO
                     # Experimental : list is passed through pointer,
                     # so intensionally modify list after object creation.
-                    select_obj, _ = self._parse_select_from_tag(select, parent=action_row_obj)
+                    select_obj, _ = self._parse_select_menu_from_tag(select, parent=action_row_obj)
                     if select_obj is not None:
                         action_row_obj.add_child(select_obj)
 
-                return action_rows
+                continue
 
-        # When code reaches to this line, it means this ActionRow tag does not have any valid Component tags.
-        raise InvalidComponentStructure(ACTION_ROW)
+            # When code reaches to this line, it means this ActionRow tag does not have any valid Component tags.
+            raise InvalidComponentStructure(ACTION_ROW)
+
+        return action_rows
 
     def load_xml_buttons(self, root: Element) -> Dict[str, Button]:
         buttons: Dict[str, Button] = {}
-        for button_tag in root.iter(BUTTON):
+        for button_tag in root.iterfind(BUTTON):
             btn, name = self._parse_button_from_tag(button_tag, parent=None)
             if btn is not None:
                 buttons[name] = btn
 
         return buttons
 
-    def load_xml_selects(self, root: Element) -> Dict[str, Select]:
-        selects: Dict[str, Select] = {}
-        for select_tag in root.iter(SELECT):
-            select, name = self._parse_select_from_tag(select_tag, parent=None)
+    def load_xml_select_menus(self, root: Element) -> Dict[str, SelectMenu]:
+        selects: Dict[str, SelectMenu] = {}
+        for select_tag in root.iterfind(SELECT_MENU):
+            select, name = self._parse_select_menu_from_tag(select_tag, parent=None)
             if select is not None:
                 selects[name] = select
 
@@ -293,18 +293,42 @@ class XMLComponentParser:
         :param root:
         :return:
         """
-        return {opt.attrib[NAME]: self._parse_select_option_from_tag(opt, parent=None, container=None) for opt in root.iter(SELECT_OPTION)}
+        return {opt.attrib[NAME]: self._parse_select_option_from_tag(opt, parent=None, container=None) for opt in root.iterfind(SELECT_OPTION)}
 
     def load_xml_components(self, xml_file_path: str) -> Dict[str, Dict[str, Component]]:
         tree: ElementTree = parse(xml_file_path)
-        component_root: Element = tree.getroot().find(COMPONENTS)
+        component_root: Element = tree.getroot()
+
+        try:
+            action_rows = self.load_xml_action_rows(component_root)
+        except InvalidComponentStructure:
+            # This xml does not contain ActionRow.
+            action_rows = {}
+
+        try:
+            buttons = self.load_xml_buttons(component_root)
+        except InvalidComponentStructure:
+            # This xml does not contain Button.
+            buttons = {}
+
+        try:
+            selects = self.load_xml_select_menus(component_root)
+        except InvalidComponentStructure:
+            # This xml does not contain Button.
+            selects = {}
+
+        try:
+            select_options = self.load_xml_select_options(component_root)
+        except InvalidComponentStructure:
+            # This xml does not contain Button.
+            select_options = {}
 
         # Primary Parse
         loaded = {
-            ACTION_ROW: self.load_xml_action_rows(component_root),
-            BUTTON: self.load_xml_buttons(component_root),
-            SELECT: self.load_xml_selects(component_root),
-            SELECT_OPTION: self.load_xml_select_options(component_root)
+            ACTION_ROW: action_rows,
+            BUTTON: buttons,
+            SELECT_MENU: selects,
+            SELECT_OPTION: select_options
         }
 
         # Consume Postponed Queue
@@ -318,16 +342,20 @@ class XMLComponentParser:
             component: Optional[Component] = loaded[target_class.__name__].get(reference) or self.parsed[target_class.__name__].get(reference)
             if component is None:
                 delayed_postponed_queue.append(context)
-            if target_class in (Button, Select):
+            if target_class in (Button, SelectMenu):
                 parent: ActionRow
                 parent.add_child(component)
             elif target_class == SelectOption:
-                parent: Select
+                parent: SelectMenu
                 container = context[PostponedKeys.CONTAINER]
                 container.append(component)
 
         self.postponed_queue = delayed_postponed_queue  # can be parsed after parsing other files.
-        self.parsed.update(loaded)
+
+        self.parsed[ACTION_ROW].update(action_rows)
+        self.parsed[BUTTON].update(buttons)
+        self.parsed[SELECT_MENU].update(selects)
+        self.parsed[SELECT_OPTION].update(select_options)
 
         return self.parsed
 
@@ -340,7 +368,7 @@ class Presets(metaclass=SingletonMeta):
         self.storage: Dict[str, Dict[str, Component]] = {
             ACTION_ROW: {},
             BUTTON: {},
-            SELECT: {},
+            SELECT_MENU: {},
             SELECT_OPTION: {}
         }
         self.parser = XMLComponentParser(storage=self.storage)
@@ -350,14 +378,17 @@ class Presets(metaclass=SingletonMeta):
         # since parser manually modifies dictionary(storage), we can just call the method and ignore the return.
         # self.storage.update(parsed)
 
+    def get_components(self) -> Dict[str, Dict[str, Component]]:
+        return self.storage
+
     def get_action_row(self, name: str) -> Optional[ACTION_ROW]:
         return self.storage[ACTION_ROW].get(name)
 
     def get_button(self, name: str) -> Optional[Button]:
         return self.storage[BUTTON].get(name)
 
-    def get_select(self, name: str) -> Optional[Select]:
-        return self.storage[SELECT].get(name)
+    def get_select_menu(self, name: str) -> Optional[SelectMenu]:
+        return self.storage[SELECT_MENU].get(name)
 
     def get_select_option(self, name: str) -> Optional[SelectOption]:
         return self.storage[SELECT_OPTION].get(name)

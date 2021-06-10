@@ -12,8 +12,7 @@ from discord import Member, Guild, TextChannel, User, Message, File
 
 from discord_interactions.utils.type_hints import JSON, CoroutineFunction
 from discord_interactions.utils.abstracts import JsonObject
-from discord_interactions.utils.slash_route import SlashRoute
-from discord_interactions.utils.exfend_builtins import Filter, Compute
+from discord_interactions.utils.interaction_route import InteractionRoute
 
 __all__ = (
     'InteractionType',
@@ -42,7 +41,7 @@ class InteractionType(Enum):
 
     @classmethod
     def parse(cls, value: int) -> Optional[InteractionType]:
-        return Filter(lambda m: m.value == value, cls.__members__.values()).findFirst()
+        return next(filter(lambda m: m.value == value, cls.__members__.values()), None)
 
 
 class ApplicationCommandInteractionDataOption(JsonObject):
@@ -113,15 +112,10 @@ class ApplicationCommandInteractionData(JsonObject):
 
     def getOptions(self) -> Optional[Dict[str, ApplicationCommandInteractionDataOption]]:
         if self._options is not None:
-            options_map = {}
+            options_map = {o.name: o for o in self._options}
             # TODO : Implement command invoke logic.
-            # TODO : Finish parsing options of interaction to Dict[str, ApplicationCommandInteractionDataOption] s
-            Compute(
-                lambda o: options_map.update(
-                    {o: o}
-                ),
-                self._options
-            ).run()
+            # TODO : Finish parsing options of interaction to Dict[str, ApplicationCommandInteractionDataOption]
+            return options_map
         else:
             return None
 
@@ -338,7 +332,7 @@ class InteractionResponseType(Enum):
 
     @classmethod
     def parse(cls, value: int) -> InteractionResponseType:
-        return Filter(lambda m: m.value == value, cls.__members__.values()).findFirst()
+        return next(filter(lambda m: m.value == value, cls.__members__.values()), None)
 
 
 class InteractionResponseFlags(IntFlag):
@@ -571,8 +565,8 @@ class ApplicationSubCommandGroup(ApplicationCommandOption):
     """
 
     def __init__(self, data: JSON) -> None:
-        data.update(type=ApplicationCommandOptionType.SUB_COMMAND_GROUP.value)
-        super().__init__(data.update())
+        data.patch_dpy(type=ApplicationCommandOptionType.SUB_COMMAND_GROUP.value)
+        super().__init__(data.patch_dpy())
         self.subcommands: List[ApplicationSubCommand] = []
 
     def subCommand(self, data: JSON) -> ApplicationSubCommand:
@@ -599,7 +593,7 @@ class ApplicationSubCommand(ApplicationCommandOption):
             data: JSON,
             subcommandGroup: Optional[ApplicationSubCommandGroup] = None
     ) -> NoReturn:
-        data.update(type=ApplicationCommandOptionType.SUB_COMMAND.value)
+        data.patch_dpy(type=ApplicationCommandOptionType.SUB_COMMAND.value)
         super().__init__(data)
 
 
@@ -677,9 +671,11 @@ class ApplicationCommand(JsonObject):
 
     def __init__(
             self,
+            # Required Parameters
             application_id: int,
             name: str,
             description: str = '',
+            # Optional Parameters
             command_id: Optional[int] = None,   # Can be set later : code-based creation
             options: Optional[List[Union[ApplicationCommandOption, JSON]]] = None,  # Options are selective argument.
             guild_id: Optional[int] = None,     # Only required to make guild-specific slash commands
@@ -766,10 +762,10 @@ class ApplicationCommand(JsonObject):
     @property
     def defaultOption(self) -> Optional[ApplicationCommandOption]:
         # Find default option
-        return Filter(
+        return next(filter(
             lambda opt: opt.option,
             sorted(self._options, key=lambda opt: opt.name.lower())
-        ).findFirst()
+        ), None)
 
     @property
     def before_invoke_hook(self) -> Optional[CoroutineFunction]:
@@ -856,7 +852,7 @@ class ApplicationCommand(JsonObject):
         loop = asyncio.get_event_loop()
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                    url=SlashRoute().application(self._application_id).commands(self._id).url,
+                    url=InteractionRoute().application(self._application_id).commands(self._id).url,
                     json=self._data
             ) as response:
                 interaction: JSON = await response.json(encoding='utf-8')
@@ -869,7 +865,7 @@ class ApplicationCommand(JsonObject):
         """
         self._id = interaction['id']
 
-        self._data.update(interaction)  # Update data.
+        self._data.patch_dpy(interaction)  # Update data.
 
     # Code-based creation
     @classmethod
@@ -905,7 +901,7 @@ class ApplicationCommand(JsonObject):
     ) -> NoReturn:
         async with aiohttp.ClientSession() as session:
             resp = await session.patch(
-                url=SlashRoute().application(self._application_id).commands(self._id).url,
+                url=InteractionRoute().application(self._application_id).commands(self._id).url,
                 data=self.toJson()
             )
             resp_json: JSON = await resp.json()
@@ -930,6 +926,8 @@ class SlashContext:
             if channel is None:
                 await guild.fetch_channels()
             author: Optional[Member] = guild.get_member(interaction.member_id)
+
+            command = interaction.getCommand(client)
 
             if channel is not None and author is not None:
                 return cls(client, author, guild, channel, command)

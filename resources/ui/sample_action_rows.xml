@@ -1,0 +1,10 @@
+<Components>
+    <ActionRow name="select_action_row_ref">
+        <SelectMenu ref="select_sample"/>
+    </ActionRow>
+    <ActionRow name="button_action_row_ref">
+        <Button name="repository link" style="Link" url="https://github.com/Lapis0875/discord_interactions.py"/>
+        <Button ref="primary_button"/>
+        <Button ref="partial_emoji_button"/>
+    </ActionRow>
+</Components>

@@ -10,8 +10,8 @@ from aiohttp.helpers import sentinel
 
 # Constants
 # Applications constants
-from discord_interactions.utils import JSON
-from discord_interactions.utils.exfend_builtins import Compute
+from .type_hints import JSON
+from .log import get_stream_logger, DEBUG
 
 Applications: Final[str] = 'applications/'
 ApplicationID: Final[str] = 'application_id'
@@ -40,8 +40,11 @@ MessageID: Final[str] = 'message_id'
 Endpoints: Final[Tuple[str, ...]] = (Applications, Guilds, Commands, Interactions, Webhooks, Messages)
 
 
-class SlashRoute:
-    APIBase: ClassVar[str] = 'https://discord.com/api/v8/'
+logger = get_stream_logger('discord_interactions.utils', DEBUG)
+
+
+class InteractionRoute:
+    APIBase: ClassVar[str] = 'https://discord.com/api/v9/'
 
     # Supported combinations
     # Global commands:
@@ -59,24 +62,15 @@ class SlashRoute:
         self._url = self.APIBase
 
     def _appendEndpointURL(self, endpoint: str, *params: Any) -> None:
-        print('DEBUG: url appended with [endpoint: {}, params: {}]'.format(endpoint, params))
+        logger.debug('DEBUG: url appended with [endpoint: {}, params: {}]'.format(endpoint, params))
         url: str = (self.url if self.url.endswith('/') else self.url + '/') + '{}/'.format(endpoint)
-        Compute(
-            lambda param: url.__add__('{}/'.format(param)),
-            params
-        ).run()
-        print('DEBUG: result > {}'.format(url))
-        self.url = url
+        url += '/'.join(map(str, params))
+        logger.debug('DEBUG: result > {}'.format(url))
+        self._url = url
 
     @property
     def url(self) -> str:
         return self._url
-
-    @url.setter
-    def url(self, new: str) -> None:
-        if not isinstance(new, str):
-            raise TypeError('SlashRoute.url must be an string object.')
-        self._url = new
 
     @property
     def applicationID(self) -> Optional[int]:
@@ -200,10 +194,8 @@ class SlashRoute:
         else:
             raise TypeError("SlashRoute.messageID must be either '@original' or instance of integer.")
 
-
     # Route helpers
-
-    def application(self, application_id: int) -> SlashRoute:
+    def application(self, application_id: int) -> InteractionRoute:
         """Route for `/application` endpoint."""
         if getattr(self, ApplicationID, False):
             # application_id가 지정되어있으면 뒤에 application/ endpoint 를 붙일 수 없다.
@@ -211,7 +203,7 @@ class SlashRoute:
         self.applicationID = application_id
         return self     # Support method chaining
 
-    def guilds(self, guild_id: int) -> SlashRoute:
+    def guilds(self, guild_id: int) -> InteractionRoute:
         """Route for`/application/guilds` endpoint."""
         if not getattr(self, ApplicationID, False) or getattr(self, GuildID, True):
             # application_id 가 지정되지 않았거나 guild_id 가 이미 지정되었을 경우 뒤에 guilds/ 엔드포인트를 붙일 수 없다.
@@ -219,7 +211,7 @@ class SlashRoute:
         self.guildID = guild_id
         return self     # Support method chaining
 
-    def commands(self, command_id: Optional[int] = None) -> SlashRoute:
+    def commands(self, command_id: Optional[int] = None) -> InteractionRoute:
         """Route for '/application/commands`, '/application/guilds/commands' endpoint."""
         if command_id is not None:
             if not getattr(self, 'application_id', False) and getattr(self, 'command_id', False):
@@ -227,10 +219,10 @@ class SlashRoute:
                 raise ValueError('Invalid position of commands/ endpoint')
             self.commandID = command_id
         else:
-            self.url += '/commands'
+            self._url += '/commands'
         return self     # Support method chaining
 
-    def interactions(self, interaction_id: int, interaction_token: str) -> SlashRoute:
+    def interactions(self, interaction_id: int, interaction_token: str) -> InteractionRoute:
         """Route for `/interactions` endpoint."""
         if not getattr(self, InteractionID, False) and getattr(self, InteractionToken, False):
             # application_id 가 지정되지 않았거나 command_id 가 이미 지정되었을 경우
@@ -239,13 +231,13 @@ class SlashRoute:
         self.interactionToken = interaction_token
         return self     # Support method chaining
 
-    def webhooks(self, application_id: int, interaction_token: str) -> SlashRoute:
+    def webhooks(self, application_id: int, interaction_token: str) -> InteractionRoute:
         self._appendEndpointURL(Webhooks, application_id)
         self.application(application_id).interactions(-1, interaction_token)    # TODO : -1 as interaction_id not set.
         return self     # Support method chaining
 
     def messages(self, message_id: Union[int, Literal['@original']] = '@original'):
-        self._appendEndpointURL(Webhooks,)
+        self._appendEndpointURL(Webhooks, message_id)
 
     # HTTP request (using aiohttp)
 
@@ -337,11 +329,3 @@ class SlashRoute:
 
     def delete(self, *args, **kwargs) -> _SessionRequestContextManager:
         return self.request('DELETE', *args, **kwargs)
-
-
-# Possible usage
-
-SlashRoute().application(0).commands()
-
-
-
