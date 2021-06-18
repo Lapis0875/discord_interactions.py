@@ -22,7 +22,8 @@ pip install discord_interactions
 import discord_interactions
 ```
 
-## How to use - Application Commands
+## Usage
+### Application Commands
 > discord.ext.commands.Bot + `Application Commands`
 
 ```python
@@ -37,7 +38,7 @@ async def hello_slash(ctx: SlashContext):
     await ctx.respond() # WIP
 ```
 
-## How to use - Message Components
+### Message Components
 > Buttons
 ```python
 from discord_interactions.ui import ButtonStyle, Button
@@ -74,7 +75,12 @@ async def select_cmd(ctx: Context):
     ])
 ```
 
-## How to use - XML Message Components (Experimental)
+## Extensions
+discord_interactions.ext module contains additional features of utilizing discord_interactions.
+
+### Preset Components
+**Preset Components** is a feature of parsing XML-structured Message Components into discord_interactions's python models.
+(Currently in `discord_interactions.ui`. Will be moved into `discord_interactions.ext.preset_components` in future release.)
 
 > `preset_components.xml`
 ```xml
@@ -93,6 +99,7 @@ async def select_cmd(ctx: Context):
     </ActionRow>
 </Components>
 ```
+
 > `code.py`
 ```python
 from discord_interactions.ui import SelectOption, SelectMenu, Button, Presets
@@ -120,6 +127,43 @@ async def repo_btn_cmd(ctx: Context):
 async def fool_poll_cmd(ctx: Context):
     await ctx.send(components=[Presets.get_action_row('food_poll_view')])
 ```
+
+### Object-Command Mapping (Currently, this is just a idea.)
+Object-Command Mapping is a extension to implement ApplicatiomCommand objects using Class definition.
+You can add Command attributes like Options, etc.
+(Will be implemented in `discord_interactions.ext.ocm`)
+```py
+from discord_interactions.commands import Command, Option, SubCommand, SubCommandGrouo
+from discord_interactions import SlashContext
+
+class SampleSlash(Command):
+    opt1 = Option(type=str)
+    opt2 = Option(type=int)
+    
+    async def callback(self, ctx: SlashContext, opt1: str, opt2: int):
+        pass 
+```
+```py
+from discord_interactions.commands import Command, Option, SubCommand, SubCommandGrouo
+from discord_interactions import SlashContext
+
+class SubcommandaSlash(Command):
+    sub = SubCommandGroup(..)
+    
+    @sub.subcommand
+    class Msg2Ch(SubCommand):
+       ch = Option(type=OptionType.Channe, ...)
+        msg = Option(type=OptionType.String, ...)
+        async def run(self, ctx: SlashContext, ch: discord.TextChannel, msg: str):
+            await ch.sebd(msg)
+    
+    @sub.subcommand
+    class Mention2Ch(Subcommand):
+        ch = Option(OptionType.Channel, ...)
+            async def callback(self, ctx: SlashContext, ch: discord.TextChannel):
+                await ch.send(ctx.author.mention) 
+```
+
 
 ## Contribute
 This project follows [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/).
