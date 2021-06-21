@@ -15,7 +15,7 @@ Every PRs are welcomed, as you keep the code's consistency (code style, docstrin
 ## How to install
 1. Install library from pypi
 ```shell
-pip install discord_interactions
+pip install discord.py-interactions
 ```
 2. Import library in your project
 ```python
